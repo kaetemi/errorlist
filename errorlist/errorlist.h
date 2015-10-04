@@ -33,6 +33,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "errorlist_global.h"
 
 #include <set>
+#include <map>
 
 #include <QWidget>
 #include <QString>
@@ -64,6 +65,9 @@ public:
 	void add(ErrorType type, int category, time_t timestamp, const QString &message);
 	void add(ErrorType type, int category, const QString &message, const QMap<QString, QVariant> &userData);
 	void add(ErrorType type, int category, const QString &message);
+
+	void markClear(int category);
+	void clearMarked();
 
 	void clear(int category);
 	void filter(ErrorType type, bool f);
@@ -97,6 +101,7 @@ private:
 	int m_FilterCounts[3];
 	QTextEdit *m_Message;
 	QListWidgetItem *m_CurrentMessage;
+	std::set<QString> m_MarkedClear;
 	
 }; /* class ErrorList */
 

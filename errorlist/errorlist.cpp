@@ -307,6 +307,47 @@ void ErrorList::filterMessage(bool f)
 	filter(Message, f);
 }
 
+void ErrorList::markClear(int category)
+{
+	for (int i = 0; i < m_List->count(); ++i)
+	{
+		QListWidgetItem *item = m_List->item(i);
+		if (item->data(DATAROLE_CATEGORY).toInt() == category)
+		{
+			QString cs = getCollapseString(item);
+			m_MarkedClear.insert(cs);
+		}
+	}
+}
+
+void ErrorList::clearMarked()
+{
+	for (int i = 0; i < m_List->count(); ++i)
+	{
+		QListWidgetItem *item = m_List->item(i);
+		QString cs = getCollapseString(item);
+		if (m_MarkedClear.find(cs) != m_MarkedClear.end())
+		{
+			if (m_CurrentMessage == item)
+			{
+				m_CurrentMessage = NULL;
+				m_Message->setVisible(false);
+			}
+			if (m_Collapse)
+			{
+				QString cs = getCollapseString(item);
+				std::map<QString, QListWidgetItem *>::iterator it
+					= m_CollapseItems.find(cs);
+				if (it != m_CollapseItems.end())
+					m_CollapseItems.erase(it);
+			}
+			--m_FilterCounts[(int)item->data(DATAROLE_TYPE).toInt()];
+			delete item;
+			--i;
+		}
+	}
+}
+
 void ErrorList::listItemClicked(QListWidgetItem *item)
 {
 	if (item != m_CurrentMessage)
@@ -354,10 +395,12 @@ void ErrorList::add(ErrorType type, int category, time_t timestamp, const QStrin
 	item->setData(DATAROLE_LINE, line);
 	item->setData(DATAROLE_USERDATA, userData);
 
+	QString cs = getCollapseString(item);
+	m_MarkedClear.erase(cs);
+
 	bool hide = m_Collapse;
 	if (hide)
 	{
-		QString cs = getCollapseString(item);
 		QListWidgetItem *ref = m_CollapseItems[cs];
 		hide = ref != NULL;
 		if (hide)
