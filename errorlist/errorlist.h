@@ -66,6 +66,8 @@ public:
 	void add(ErrorType type, int category, const QString &message, const QMap<QString, QVariant> &userData);
 	void add(ErrorType type, int category, const QString &message);
 
+	void update(int category, const QString &message);
+
 	void markClear(int category);
 	void clearMarked();
 

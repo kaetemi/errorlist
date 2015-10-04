@@ -426,6 +426,27 @@ void ErrorList::add(ErrorType type, int category, time_t timestamp, const QStrin
 	updateFilterCount((int)type);
 }
 
+void ErrorList::update(int category, const QString &message)
+{
+	// NOTE: This does not play well with collapse, so you should only have one message present in the category
+	// Automatically adds a message if no message exists in the category
+	for (int i = 0; i < m_List->count(); ++i)
+	{
+		QListWidgetItem *item = m_List->item(i);
+		if (item->data(DATAROLE_CATEGORY).toInt() == category)
+		{
+			QTextDocument doc;
+			doc.setHtml(message);
+			QString line = doc.toPlainText().replace('\n', ' ').replace('\r', ' ');
+			item->setData(DATAROLE_MESSAGE, message);
+			item->setData(DATAROLE_LINE, line);
+			item->setText(line);
+			return;
+		}
+	}
+	add(Message, category, message);
+}
+
 void ErrorList::add(ErrorType type, int category, time_t timestamp, const QString &message)
 {
 	QMap<QString, QVariant> nullMap;
