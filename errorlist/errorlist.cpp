@@ -40,7 +40,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #define DATAROLE_TYPE (Qt::UserRole + 0)
 #define DATAROLE_TIMESTAMP (Qt::UserRole + 1)
-#define DATAROLE_CATEGORY (Qt::UserRole + 2)
+#define DATAROLE_GROUP (Qt::UserRole + 2)
 #define DATAROLE_MESSAGE (Qt::UserRole + 3)
 #define DATAROLE_LINE (Qt::UserRole + 4)
 #define DATAROLE_USERDATA (Qt::UserRole + 5)
@@ -129,7 +129,7 @@ ErrorList::ErrorList(QWidget *parent) : QWidget(parent), m_Collapse(true), m_Col
 	updateFilterCount(2);
 	messageBtn->setCheckable(true);
 	messageBtn->setChecked(m_Filter[2]);
-	connect(messageBtn, SIGNAL(toggled(bool)), this, SLOT(filterWarning(bool)));
+	connect(messageBtn, SIGNAL(toggled(bool)), this, SLOT(filterMessage(bool)));
 	buttons->addWidget(messageBtn);
 
 	layout->addLayout(buttons);
@@ -175,12 +175,12 @@ void ErrorList::clear()
 	updateFilterCount(2);
 }
 
-void ErrorList::clear(int category)
+void ErrorList::clear(const QString &group)
 {
 	for (int i = 0; i < m_List->count(); ++i)
 	{
 		QListWidgetItem *item = m_List->item(i);
-		if (item->data(DATAROLE_CATEGORY).toInt() == category)
+		if (item->data(DATAROLE_GROUP).toString() == group)
 		{
 			if (m_CurrentMessage == item)
 			{
@@ -307,12 +307,12 @@ void ErrorList::filterMessage(bool f)
 	filter(Message, f);
 }
 
-void ErrorList::markClear(int category)
+void ErrorList::markClear(const QString &group)
 {
 	for (int i = 0; i < m_List->count(); ++i)
 	{
 		QListWidgetItem *item = m_List->item(i);
-		if (item->data(DATAROLE_CATEGORY).toInt() == category)
+		if (item->data(DATAROLE_GROUP).toString() == group)
 		{
 			QString cs = getCollapseString(item);
 			m_MarkedClear.insert(cs);
@@ -368,20 +368,20 @@ void ErrorList::listItemClicked(QListWidgetItem *item)
 
 void ErrorList::listItemDoubleClicked(QListWidgetItem *item)
 {
-	emit request(item->data(DATAROLE_CATEGORY).toInt(), item->data(DATAROLE_USERDATA).toMap());
+	emit request(item->data(DATAROLE_GROUP).toString(), item->data(DATAROLE_USERDATA).toMap());
 }
 
 QString ErrorList::getCollapseString(QListWidgetItem *item)
 {
-	return QString::number(item->data(DATAROLE_CATEGORY).toInt()) + " / " + item->data(DATAROLE_LINE).toString();
+	return item->data(DATAROLE_GROUP).toString() + " / " + item->data(DATAROLE_LINE).toString();
 }
 
 void ErrorList::updateCollapseText(QListWidgetItem *item)
 {
-	item->setText(QString("(" + QString::number(item->data(DATAROLE_COLLAPSED).toInt()) + "x) " + item->data(DATAROLE_LINE).toString().replace('\n', ' ').replace('\r', ' ')));
+	item->setText(QString("(" + QString::number(item->data(DATAROLE_COLLAPSED).toInt()) + "x) " + item->data(DATAROLE_LINE).toString()));// .replace('\n', ' ').replace('\r', ' ')));
 }
 
-void ErrorList::add(ErrorType type, int category, time_t timestamp, const QString &message, const QMap<QString, QVariant> &userData)
+void ErrorList::add(ErrorType type, const QString &group, time_t timestamp, const QString &message, const QMap<QString, QVariant> &userData)
 {
 	QTextDocument doc;
 	doc.setHtml(message);
@@ -390,13 +390,17 @@ void ErrorList::add(ErrorType type, int category, time_t timestamp, const QStrin
 	ErrorListItem *item = new ErrorListItem(QIcon(iconNames[(int)type]), line);
 	item->setData(DATAROLE_TYPE, (int)type);
 	item->setData(DATAROLE_TIMESTAMP, timestamp);
-	item->setData(DATAROLE_CATEGORY, category);
+	item->setData(DATAROLE_GROUP, group);
 	item->setData(DATAROLE_MESSAGE, message);
 	item->setData(DATAROLE_LINE, line);
 	item->setData(DATAROLE_USERDATA, userData);
 
 	QString cs = getCollapseString(item);
-	m_MarkedClear.erase(cs);
+	if (m_MarkedClear.find(cs) != m_MarkedClear.end())
+	{
+		m_MarkedClear.erase(cs);
+		return;
+	}
 
 	bool hide = m_Collapse;
 	if (hide)
@@ -426,14 +430,14 @@ void ErrorList::add(ErrorType type, int category, time_t timestamp, const QStrin
 	updateFilterCount((int)type);
 }
 
-void ErrorList::update(int category, const QString &message)
+void ErrorList::update(const QString &group, const QString &message)
 {
 	// NOTE: This does not play well with collapse, so you should only have one message present in the category
 	// Automatically adds a message if no message exists in the category
 	for (int i = 0; i < m_List->count(); ++i)
 	{
 		QListWidgetItem *item = m_List->item(i);
-		if (item->data(DATAROLE_CATEGORY).toInt() == category)
+		if (item->data(DATAROLE_GROUP).toString() == group)
 		{
 			QTextDocument doc;
 			doc.setHtml(message);
@@ -444,24 +448,24 @@ void ErrorList::update(int category, const QString &message)
 			return;
 		}
 	}
-	add(Message, category, message);
+	add(Message, group, message);
 }
 
-void ErrorList::add(ErrorType type, int category, time_t timestamp, const QString &message)
+void ErrorList::add(ErrorType type, const QString &group, time_t timestamp, const QString &message)
 {
 	QMap<QString, QVariant> nullMap;
-	add(type, category, timestamp, message, nullMap);
+	add(type, group, timestamp, message, nullMap);
 }
 
-void ErrorList::add(ErrorType type, int category, const QString &message, const QMap<QString, QVariant> &userData)
+void ErrorList::add(ErrorType type, const QString &group, const QString &message, const QMap<QString, QVariant> &userData)
 {
-	add(type, category, QDateTime::currentDateTime().toTime_t(), message, userData);
+	add(type, group, QDateTime::currentDateTime().toTime_t(), message, userData);
 }
 
-void ErrorList::add(ErrorType type, int category, const QString &message)
+void ErrorList::add(ErrorType type, const QString &group, const QString &message)
 {
 	QMap<QString, QVariant> nullMap;
-	add(type, category, message, nullMap);
+	add(type, group, message, nullMap);
 }
 
 /* end of file */

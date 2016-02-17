@@ -61,21 +61,21 @@ public:
 	ErrorList(QWidget *parent);
 	virtual ~ErrorList();
 
-	void add(ErrorType type, int category, time_t timestamp, const QString &message, const QMap<QString, QVariant> &userData);
-	void add(ErrorType type, int category, time_t timestamp, const QString &message);
-	void add(ErrorType type, int category, const QString &message, const QMap<QString, QVariant> &userData);
-	void add(ErrorType type, int category, const QString &message);
+	void add(ErrorType type, const QString &group, time_t timestamp, const QString &message, const QMap<QString, QVariant> &userData);
+	void add(ErrorType type, const QString &group, time_t timestamp, const QString &message);
+	void add(ErrorType type, const QString &group, const QString &message, const QMap<QString, QVariant> &userData);
+	void add(ErrorType type, const QString &group, const QString &message);
 
-	void update(int category, const QString &message);
+	void update(const QString &group, const QString &message);
 
-	void markClear(int category);
+	void markClear(const QString &group);
 	void clearMarked();
 
-	void clear(int category);
+	void clear(const QString &group);
 	void filter(ErrorType type, bool f);
 
 signals:
-	void request(int category, const QMap<QString, QVariant> &userData);
+	void request(const QString &group, const QMap<QString, QVariant> &userData);
 
 public slots:
 	void clear();
